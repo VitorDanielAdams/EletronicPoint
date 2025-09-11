@@ -2,12 +2,13 @@
 
 namespace EletronicPoint.Domain.Entities
 {
-    public class WorkShift : BaseEntity
+    public class WorkShift : AuditableEntity
     {
         public string Name { get; set; }
         public string? Description { get; set; }
+        public int BreakMinutes { get; set; }
 
         public virtual ICollection<WorkShiftPeriod> Periods { get; set; } = new List<WorkShiftPeriod>();
-        public virtual ICollection<UserEntity> Users { get; set; } = new List<UserEntity>();
+        public virtual ICollection<User> Users { get; set; } = new List<User>();
     }
 }

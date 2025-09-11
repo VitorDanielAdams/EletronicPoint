@@ -2,7 +2,7 @@
 
 namespace EletronicPoint.Domain.Entities
 {
-    public class AdjustmentRequestEntry : BaseEntity
+    public class AdjustmentRequestEntry : AuditableEntity
     {
         public int AdjustmentId { get; set; }
         public int? WorkShiftPeriodId { get; set; }
