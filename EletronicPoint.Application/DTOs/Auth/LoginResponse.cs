@@ -2,5 +2,5 @@
 
 namespace EletronicPoint.Application.DTOs.Auth
 {
-    public record LoginResponse (string Token, GetUserResponse User);
+    public record LoginResponse (string Token, UserResponse User);
 }

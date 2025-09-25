@@ -23,7 +23,7 @@ namespace EletronicPoint.WebApi.Controllers
         {
             try
             {
-                var response = _userService.AuthenticateAsync(request, cancellationToken);
+                var response = await _userService.AuthenticateAsync(request, cancellationToken);
                 return Ok(response);
             }
             catch (Exception ex)

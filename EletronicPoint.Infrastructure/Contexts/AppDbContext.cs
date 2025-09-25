@@ -3,19 +3,17 @@ using EletronicPoint.Domain.Entities;
 using EletronicPoint.Domain.Entities.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Configuration;
+using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace EletronicPoint.Infrastructure.Contexts
 {
     public class AppDbContext : DbContext
     {
-        private readonly ICurrentUserService _currentUser;
-
+        private readonly ICurrentUserService _currentUserService;
         public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUser)
-            : base(options)
-        {
-            _currentUser = currentUser;
-        }
+            : base(options) => _currentUserService = currentUser;
 
         public DbSet<User> Users => Set<User>();
         public DbSet<WorkShift> WorkShifts => Set<WorkShift>();
@@ -47,42 +45,27 @@ namespace EletronicPoint.Infrastructure.Contexts
             foreach (var entityType in modelBuilder.Model.GetEntityTypes()
                 .Where(e => typeof(BaseEntity).IsAssignableFrom(e.ClrType)))
             {
-                modelBuilder.Entity(entityType.ClrType)
+                var clrType = entityType.ClrType;
+
+                modelBuilder.Entity(clrType)
                     .Property("Id")
                     .ValueGeneratedOnAdd();
 
-                modelBuilder.Entity(entityType.ClrType)
+                modelBuilder.Entity(clrType)
                     .Property(nameof(BaseEntity.TenantId))
                     .IsRequired();
 
-                modelBuilder.Entity(entityType.ClrType)
+                modelBuilder.Entity(clrType)
                     .HasIndex(nameof(BaseEntity.TenantId));
 
-                ApplySoftDeleteQueryFilter(modelBuilder, entityType.ClrType);
-                ApplyTenantIdQueryFilter(modelBuilder, entityType.ClrType);
+                var parameter = Expression.Parameter(clrType, "e");
+                var tenantProperty = Expression.Property(parameter, nameof(BaseEntity.TenantId));
+                var tenantId = Expression.Constant(_currentUserService.GetTenantId());
+                var body = Expression.Equal(tenantProperty, tenantId);
+                var lambda = Expression.Lambda(body, parameter);
+
+                modelBuilder.Entity(clrType).HasQueryFilter(lambda);
             }
-        }
-
-        private void ApplySoftDeleteQueryFilter(ModelBuilder modelBuilder, Type entityType)
-        {
-            var parameter = Expression.Parameter(entityType, "e");
-            var property = Expression.Property(parameter, "DeletedAt");
-            var nullConstant = Expression.Constant(null, typeof(DateTime?));
-            var condition = Expression.Equal(property, nullConstant);
-            var lambda = Expression.Lambda(condition, parameter);
-
-            modelBuilder.Entity(entityType).HasQueryFilter(lambda);
-        }
-
-        private void ApplyTenantIdQueryFilter(ModelBuilder modelBuilder, Type entityType)
-        {
-            var param = Expression.Parameter(entityType, "e");
-            var tenantProperty = Expression.Property(param, nameof(BaseEntity.TenantId));
-            var tenantId = Expression.Constant(_currentUser.TenantId);
-            var body = Expression.Equal(tenantProperty, tenantId);
-            var lambda = Expression.Lambda(body, param);
-
-            modelBuilder.Entity(entityType).HasQueryFilter(lambda);
         }
 
         private void ConfigureUserEntity(ModelBuilder modelBuilder)
@@ -381,14 +364,13 @@ namespace EletronicPoint.Infrastructure.Contexts
 
         private void SetTenantIds()
         {
-            var tenantId = _currentUser.TenantId;
             var entries = ChangeTracker.Entries<BaseEntity>();
 
             foreach (var entry in entries)
             {
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.TenantId = tenantId;
+                    entry.Entity.TenantId = _currentUserService.GetTenantId();
                 }
                 else if (entry.State == EntityState.Modified)
                 {

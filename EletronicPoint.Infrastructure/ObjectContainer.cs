@@ -2,9 +2,9 @@
 using EletronicPoint.Application.Repositories.Common;
 using EletronicPoint.Application.Services.Impl;
 using EletronicPoint.Application.Services.Interfaces;
-using EletronicPoint.Infrastructure.Identity;
 using EletronicPoint.Infrastructure.Repositories;
 using EletronicPoint.Infrastructure.Repositories.Common;
+using EletronicPoint.Infrastructure.Service.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +26,7 @@ namespace EletronicPoint.Infrastructure
             #region Services
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<ITokenService, TokenService>();
 
             #endregion
 
